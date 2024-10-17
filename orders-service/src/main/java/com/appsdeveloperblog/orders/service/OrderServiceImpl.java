@@ -5,12 +5,15 @@ import com.appsdeveloperblog.core.dto.events.OrderApprovedEvent;
 import com.appsdeveloperblog.core.dto.events.OrderCreatedEvent;
 import com.appsdeveloperblog.core.types.OrderStatus;
 import com.appsdeveloperblog.orders.dao.jpa.entity.OrderEntity;
+import com.appsdeveloperblog.orders.dao.jpa.entity.OrderHistoryEntity;
 import com.appsdeveloperblog.orders.dao.jpa.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -61,6 +64,14 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(orderEntity);
         OrderApprovedEvent orderApprovedEvent = new OrderApprovedEvent(orderEntity.getId());
         kafkaTemplate.send(ordersEventsTopicName, orderApprovedEvent);
+    }
+
+    @Override
+    public void rejectOrder(UUID orderId) {
+        OrderEntity orderEntity = orderRepository.findById(orderId).orElse(null);
+        Assert.notNull(orderEntity, "Order not found, id: " + orderId);
+        orderEntity.setStatus(OrderStatus.REJECTED);
+        orderRepository.save(orderEntity);
     }
 
 }

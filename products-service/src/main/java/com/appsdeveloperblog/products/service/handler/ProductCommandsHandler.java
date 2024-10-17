@@ -1,10 +1,13 @@
 package com.appsdeveloperblog.products.service.handler;
 
 import com.appsdeveloperblog.core.dto.Product;
+import com.appsdeveloperblog.core.dto.commands.CancelProductReservationCommand;
 import com.appsdeveloperblog.core.dto.commands.ReserveProductCommand;
+import com.appsdeveloperblog.core.dto.events.ProductReservationCancelledEvent;
 import com.appsdeveloperblog.core.dto.events.ProductReservationFailedEvent;
 import com.appsdeveloperblog.core.dto.events.ProductReservedEvent;
 import com.appsdeveloperblog.products.service.ProductService;
+import jakarta.servlet.http.PushBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +49,16 @@ public class ProductCommandsHandler {
             kafkaTemplate.send(productEventsTopicName, productReservationFailedEvent);
         }
 
+    }
+
+    @KafkaHandler
+    public void HandleCommand(@Payload CancelProductReservationCommand command) {
+        Product productToCancel = new Product(command.getProductId(), command.getProductQuantity());
+        productService.cancelReservation(productToCancel, command.getOrderId());
+
+        ProductReservationCancelledEvent productReservationCancelledEvent = new ProductReservationCancelledEvent(command.getProductId(),
+                command.getOrderId());
+        kafkaTemplate.send(productEventsTopicName, productReservationCancelledEvent);
     }
 
 }
